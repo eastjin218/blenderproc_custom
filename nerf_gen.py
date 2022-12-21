@@ -34,7 +34,7 @@ def define_config():
         '-t',
         '--texture_path',
         help='rendering texture path',
-        default='/home/BlenderProc/custom_data/img_16.png',
+        default='/home/BlenderProc/custom_data/dta_best_attack_pattern.png',
     )
     p.add_argument(
         '-ss',
@@ -61,6 +61,32 @@ def object_setup(
     for obj in objs:
         obj.set_location(location)
         obj.set_rotation_euler(rotation)
+        obj.edit_mode()
+        obj_bm = obj.mesh_as_bmesh()
+        uv_layer = obj_bm.loops.layers.uv.verify()
+        # obj_bm.faces.layers.tex.verify()  # currently blender needs both layers.
+        for f in obj_bm.faces:
+            norm = f.normal
+            ax, ay, az = abs(norm.x), abs(norm.y), abs(norm.z)
+            axis = -1
+            if ax > ay and ax > az:
+                axis = 0
+            if ay > ax and ay > az:
+                axis = 1
+            if az > ax and az > ay:
+                axis = 2
+            for l in f.loops:
+                luv = l[uv_layer]
+                if axis == 0: # x plane     
+                    luv.uv.x = l.vert.co.y
+                    luv.uv.y = l.vert.co.z
+                if axis == 1: # u plane
+                    luv.uv.x = l.vert.co.x
+                    luv.uv.y = l.vert.co.z
+                if axis == 2: # z plane
+                    luv.uv.x = l.vert.co.x
+                    luv.uv.y = l.vert.co.y
+        obj.update_from_bmesh(obj_bm)
 
 def light_setup(
     light, location=[5,5,5], energy=300
