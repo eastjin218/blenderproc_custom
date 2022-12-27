@@ -44,6 +44,13 @@ def define_config():
         default=100,
     )
     p.add_argument(
+        '-ts',
+        '--texture_scale',
+        help ='texture scale of object',
+        type = float,
+        default = 1.28,
+    )
+    p.add_argument(
         '--use_texture',
         help='texture using control',
         action='store_true'
@@ -57,7 +64,7 @@ def load_json(json_path):
     return json_data
 
 def object_setup(
-    objs, location=[0,0,-1], rotation=[np.pi/2, 0,np.pi/2+np.pi]):
+    objs, config, location=[0,0,-1], rotation=[np.pi/2, 0,np.pi/2+np.pi]):
     for obj in objs:
         obj.set_location(location)
         obj.set_rotation_euler(rotation)
@@ -87,11 +94,15 @@ def object_setup(
                     luv.uv.x = l.vert.co.x
                     luv.uv.y = l.vert.co.y
         obj.update_from_bmesh(obj_bm)
+        obj.object_mode()
+        obj.scale_uv_coordinate(1/config.texture_scale)
+
 
 def light_setup(
-    light, location=[5,5,5], energy=300
+    light, location=[5,0,5], energy=1000
 ):
-    light.set_type("POINT")
+    light.set_type("AREA")
+    # light.set_distance(100000)
     light.set_location(location)
     light.set_energy(energy)
 
@@ -133,7 +144,7 @@ def camera_setup(
             bproc.camera.add_camera_pose(matrix)
 
             matrix[:3,3] = matrix[:3,3]*4/distance
-            sub_trans_json['file_path']=f'{ty}/{idx}_colors.png'
+            sub_trans_json['file_path']=f'{ty}/{idx}_colors'
             sub_trans_json['rotation']=0.01256
             sub_trans_json['transform_matrix']=matrix.tolist()
             transform_json['frames'].append(sub_trans_json)
@@ -161,14 +172,14 @@ def sort_file(output_path, shard_size=100):
         shutil.rmtree(i)
 
 def merg_json(ty='train'):
-    json_files = glob.glob(f'./transform_{ty}*')
+    json_files = glob.glob(f'./transform_{ty}_*')
     with open(json_files[0], 'r') as f:
         json_data = json.load(f)
     for i in json_files[1:]:
         with open(i, 'r') as k:
             data = json.load(k)
         json_data['frames'].extend(data['frames'])
-    with open(f'transform_{ty}.json','w') as i:
+    with open(f'transforms_{ty}.json','w') as i:
         json.dump(json_data, i, indent=2)
     for j in json_files:
         os.remove(j)
@@ -185,7 +196,7 @@ def main(config):
         end_idx = (batch+1)*config.shard_size
         
         objs = bproc.loader.load_obj(config.object_path)
-        object_setup(objs)
+        object_setup(objs, config)
         light = bproc.types.Light()
         light_setup(light)
         camera_setup(camera_json, ty,

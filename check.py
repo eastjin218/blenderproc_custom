@@ -36,12 +36,17 @@ for obj in objs:
             if axis == 2: # z plane
                 luv.uv.x = l.vert.co.x
                 luv.uv.y = l.vert.co.y
+    
     obj.update_from_bmesh(obj_bm)
+    obj.object_mode() # mesh edit mode convert to object mode
+    print(obj.get_bound_box()) # 객체 3D bounding box 좌표 (x,y,z) 8개
+    # print(obj.get_bound_box_volume()) # 갹체 볼륨
+    obj.scale_uv_coordinates(1/0.5) # texture의 unit scale 배율 조절 (1/2) => texture scale 2m /기본은 1m
 
 light = bproc.types.Light()
-light.set_type("POINT")
-light.set_location([5,5,5])
-light.set_energy(300)
+light.set_type("SUN")
+light.set_distance(100)
+light.set_energy(10)
 
 bproc.camera.set_resolution(1024, 720)
 
